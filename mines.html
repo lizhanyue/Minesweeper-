@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>mines</title>
+</head>
+<body>
+	<canvas id="myCanvas" width="315" height="315" style="border:1px solid #F12150"></canvas>
+	<script>
+	var c=document.getElementById("myCanvas");
+	var ctx=c.getContext("2d");
+	var arrMines=[];
+	var numMines=0;
+	var numberHasMines=0;
+	
+	var leftLattice=0;
+	//生成格子对象
+	ctx.strokeStyle='#F12150';
+	for(var i=0;i<9;i++){  //行
+		var arrMine=[];
+		for(var j=0;j<9;j++){  //列
+			var arrmine={
+				x:i,
+				y:j,
+				isMine:false,
+				isOpen:false,
+				isSpace:false,
+			};
+			arrMine.push(arrmine);
+		//生成一个9*9的平面
+			ctx.strokeRect( 35 * i, 35 * j, 35, 35);
+		}
+		arrMines.push(arrMine);
+	}
+
+	 	console.log(arrMines);
+	//加雷
+	while(numMines<10){
+		var x=f(0,9);
+		var y=f(0,9);
+		if(arrMines[x][y]["isMine"]==false){
+			addText(x,y,"雷");
+			arrMines[x][y]["isMine"]=true;
+		    numMines++;
+		}
+	}
+	//随机
+	function f(min,max){
+		return Math.floor(Math.random()*(max-(min+1))+min);
+	}
+
+	//加数字，并且记录空格
+	for(var k=0;k<9;k++){
+		for(var l=0;l<9;l++){
+			numberHasMines=0;
+			if(arrMines[k][l].isMine==false){
+				for(var a=-1;a<2;a++){
+					for(var b=-1;b<2;b++){
+						if((k+a)>=0 && (l+b)>=0 && (k+a)<9 && (l+b)<9){
+							if(arrMines[k+a][l+b].isMine){
+                           		numberHasMines++;
+							}
+						}
+
+					}
+				}
+				if(numberHasMines!=0){
+				   addText(k,l,numberHasMines); //加数字
+				}else{
+					arrMines[k][l].isSpace=true;//并且记录空格
+				}
+
+			}
+		}
+	}
+
+	//写字
+	function addText(i,j,text){
+		ctx.font="30px";
+		ctx.textAlign='center';//横向居中
+		ctx.textBaseline="middle"; //纵向居中
+		ctx.fillText(text, 35 * j + 17.5 , 35 * i + 17.5);//x轴和y轴这里是相反的，所以是j，i不是i，j
+	}
+
+	// 覆盖蒙版第一遍，无选择都覆盖
+	var imgData=ctx.getImageData(0, 0, 315, 315);
+    ctx.fillStyle="#4E4E4E"
+    ctx.strokeStyle='#F12150';
+    for (var i = 0; i < 9; i++) {
+      for (var j = 0; j < 9; j++) {
+        ctx.fillRect(35 * i, 35 * j, 35, 35);
+        ctx.strokeRect(35 * i, 35 * j, 35, 35);
+      }
+    }
+
+    //点击
+ 	c.onclick=function(event){
+ 		//得到点击后的左边，用来判断点的哪个格子
+ 	    var xx=Math.floor(event.y/35);
+ 	    var yy=Math.floor(event.x/35);
+ 	    leftLattice=0;
+
+ 	    //解决点击边缘边框报错的问题
+ 	    if(xx>8){
+ 	    	xx=8;
+ 	    }
+ 	    if(yy>8){
+ 	    	yy=8;
+ 	    }
+ 	    if(xx<0){
+ 	    	xx=0;
+ 	    }
+ 	    if(yy<0){
+ 	    	yy=0;
+ 	    }
+       	ctx.clearRect(0, 0, 315, 315);//清空画布
+       	ctx.putImageData(imgData,0,0); //取出之前的数据（也就是取出画了雷与数字的画面）
+       	arrMines[xx][yy].isOpen=true;//点击的块改变状态，改为已打开
+
+       	//如果点击的是空格，就进行递归
+       	 if(arrMines[xx][yy].isSpace==true){
+	    	space(xx,yy);
+	    }
+	    //清空完画布，拿回之前的数据以后，这一步该覆盖蒙版了
+       	for (var i = 0; i < 9; i++) {
+	      for (var j = 0; j < 9; j++) {
+	      	//写边框，边框是每个格子都需要有的
+	        ctx.strokeStyle='#F12150';
+	        ctx.strokeRect(35 * j, 35 * i, 35, 35);
+	        //判断是不是已经打开，给没打开的覆盖蒙版
+	        if(arrMines[i][j].isOpen==false){
+	        	leftLattice++;
+	    		ctx.fillStyle="#4E4E4E";
+	    		ctx.fillRect(35 * j, 35 * i, 35, 35);//i是格子的x坐标，在这里画的时候说的是距离，所以x与y轴要反过来
+	        }
+
+	      }
+	    }
+	    //如果是雷，宣布游戏结束
+	    if(arrMines[xx][yy].isMine==true){
+	    	alert("游戏结束");
+	    	window.location.reload();
+	    }
+	    //判断剩余的没isOpen的数量，因为雷有10颗，所以如果剩下10个没打开的就宣布通关
+	    if(leftLattice==10){
+	    	alert("恭喜通关");
+	    	window.location.reload();
+	    }
+     }
+
+     //自动打开空格的递归函数
+     function space(k,l){
+     	//判断前后左右斜的格子
+     	for(var a=-1;a<2;a++){
+			for(var b=-1;b<2;b++){
+				console.log(k+a,l+b,"...");
+				if((k+a)>=0 && (l+b)>=0 && (k+a)<9 && (l+b)<9){
+					//判断这个格子是否是空格，是空格而且没被打开过就调用递归
+					if(arrMines[k+a][l+b].isSpace==true && arrMines[k+a][l+b].isOpen==false){
+						   arrMines[k+a][l+b].isOpen=true;//同时将这个格子状态改为已打开
+                           (space(k+a,l+b));
+					}else{
+						//不符合上述条件的话，那这个格子可能是雷，可能是数字，也可能是已被打开的数字或者是已被打开的空格。判断这个格子是否是雷，不是雷的话，就开启它。这里的作用主要是开启空格边缘的数字
+						if(arrMines[k+a][l+b].isMine==false){
+							arrMines[k+a][l+b].isOpen=true;
+						}
+					}
+				}
+			}
+	    }
+     }
+	</script>
+</body>
+</html>
